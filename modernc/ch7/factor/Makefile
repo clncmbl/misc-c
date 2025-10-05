@@ -1,13 +1,13 @@
 CC = gcc-14
-CFLAGS = -Wall -Wextra -std=c23 -g
+CFLAGS = -Wall -Wextra -Wmisleading-indentation -std=c23 -g
 
 # -lm as a linker flag links in the standard math library.
-# No sure if I actually need it yet.
+# Not sure if I actually need it yet.
 LDFLAGS = -lm
 
 TARGET = factor
 
-OBJECTS = factor.o
+OBJECTS = factor.o primeslib.o
 
 all: $(TARGET)
 
