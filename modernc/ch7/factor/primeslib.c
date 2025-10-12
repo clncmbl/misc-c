@@ -46,6 +46,26 @@ static inline size_t idx_from_wheel(int num) {
   return idx_base + idx_offset;
 }
 
+static size_t idxstart_from_wheel(int lastmax, int factor) {
+  int next = lastmax / factor + 1;
+  size_t idx_base = 8 * (next/30);
+  int num_offset = next % 30;
+
+  size_t idx_next = idx_base +
+                       ((num_offset > 23) ? 7 :
+                        (num_offset > 19) ? 6 :
+                        (num_offset > 17) ? 5 :
+                        (num_offset > 13) ? 4 :
+                        (num_offset > 11) ? 3 :
+                        (num_offset >  7) ? 2 :
+                        (num_offset >  1) ? 1 : 0);
+
+  // TODO: Check for composite flag
+  printf("In idxstart_from_wheel: %d  %zu  %zu\n", next, idx_base, idx_next);
+  return idx_next;
+}
+
+
 static inline void set_wheel_idx_composite(size_t idx) {
   assert(idx < wheel.capacity);
   wheel.data[idx] = true;
@@ -59,23 +79,26 @@ static void set_wheel_composites(size_t maxidx) {
 
   int inumstop = sqrt(targmaxnum); 
   
-  for (size_t i = 1; ; ++i) { // Check and break internally.
+  for (size_t i = 1; ; ++i) {
     assert(i < wheel.capacity);
     int n = num_from_wheel(i);
     if (n > inumstop) {
       break;
     }
-    size_t jstart = idx_from_wheel(currmaxnum/n) + 1;
+    size_t jstart = idxstart_from_wheel(currmaxnum, n);
     if (i > jstart) jstart = i;
-    printf("%d %d\n", currmaxnum/n, jstart);
+    printf("%d %zu\n", currmaxnum/n, jstart);
     for (size_t j = jstart; ; ++j) {
-      int num = n * num_from_wheel(j);
-      if (num > targmaxnum) {
+      int wheelnum = num_from_wheel(j);
+      int prod = n * wheelnum;
+      if (prod > targmaxnum) {
         break;
       }
-      printf("%zu %zu     %d %d\n", i, j, n, num);
+      set_wheel_idx_composite(idx_from_wheel(prod));
+      printf("%zu %zu     %d %d %d\n", i, j, n, wheelnum, prod);
     }
   }
+  wheel.idxmax = maxidx;
 }
 
 static once_flag init_flag = ONCE_FLAG_INIT;
@@ -95,8 +118,9 @@ static void init_data(void) {
   wheel.idxmax = 1;  // Represents 7.
   wheel.idxmaxtrue = idx_from_wheel(49);
   set_wheel_idx_composite(wheel.idxmaxtrue);
-  set_wheel_composites(100);
-  //set_wheel_composites(1000);
+  set_wheel_composites(130);
+  set_wheel_composites(160);
+  set_wheel_composites(190);
 }
 
 int next_prime(int start) {
@@ -106,7 +130,14 @@ int next_prime(int start) {
   printf("%zu\n", idx_from_wheel(37));
   printf("%zu\n", idx_from_wheel(39));
   printf("%zu\n", idx_from_wheel(11111137));
-
+/*
+  printf("> %zu\n", idxstart_from_wheel(29*7+1, 7));
+  printf("> %zu\n", idxstart_from_wheel(30*7-1, 7));
+  printf("> %zu\n", idxstart_from_wheel(30*7, 7));
+  printf("> %zu\n", idxstart_from_wheel(36*7-1, 7));
+  printf("> %zu\n", idxstart_from_wheel(37*7  , 7));
+  printf("> %zu\n", idxstart_from_wheel(38*7+1, 7));
+*/
   return start;
 }
 
