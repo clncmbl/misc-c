@@ -3,6 +3,7 @@
 #include <threads.h>
 #include <assert.h>
 #include <stdint.h>
+#include <math.h>
 
 typedef struct intDynamicArr intDynamicArr;
 struct intDynamicArr {
@@ -16,7 +17,7 @@ typedef struct wheelStruct wheelStruct;
 struct wheelStruct {
   size_t capacity;
   bool* data;
-  size_t count;
+  size_t idxmax;
   size_t idxmaxtrue;
 };
 static wheelStruct wheel;
@@ -45,19 +46,36 @@ static inline size_t idx_from_wheel(int num) {
   return idx_base + idx_offset;
 }
 
-static void set_wheel_idx_composite(size_t idx) {
-  // This assumes idx is not already set.  This should be okay
-  // as long as we do not aim to mark anything greater than
-  // x*y^2 where x is the smallest prime after the initial prime
-  // (7, here) and y is the smallest prime that follows the last
-  // limit of marking.  To simplify logic, we should initially set
-  // wheel.data[idx_from_wheel(49)]=true,
-  // wheel.idxmaxtrue = idx_from_wheel(49).  Then, x=7 and
-  // y = num_from_wheel(wheel.idxmaxtrue + 1) = 53.
-  assert(wheel.data[idx] == false);
+static inline void set_wheel_idx_composite(size_t idx) {
   assert(idx < wheel.capacity);
   wheel.data[idx] = true;
-  ++wheel.count;
+}
+
+// IN PROGRESS!!!!!!!!!!!!!!!!!!
+static void set_wheel_composites(size_t maxidx) {
+  int targmaxnum = num_from_wheel(maxidx);
+  size_t currmaxidx = wheel.idxmax;
+  int currmaxnum = num_from_wheel(currmaxidx);
+
+  int inumstop = sqrt(targmaxnum); 
+  
+  for (size_t i = 1; ; ++i) { // Check and break internally.
+    assert(i < wheel.capacity);
+    int n = num_from_wheel(i);
+    if (n > inumstop) {
+      break;
+    }
+    size_t jstart = idx_from_wheel(currmaxnum/n) + 1;
+    if (i > jstart) jstart = i;
+    printf("%d %d\n", currmaxnum/n, jstart);
+    for (size_t j = jstart; ; ++j) {
+      int num = n * num_from_wheel(j);
+      if (num > targmaxnum) {
+        break;
+      }
+      printf("%zu %zu     %d %d\n", i, j, n, num);
+    }
+  }
 }
 
 static once_flag init_flag = ONCE_FLAG_INIT;
@@ -74,9 +92,11 @@ static void init_data(void) {
   // not prime) numbers.
   wheel.capacity = 1000;
   wheel.data = calloc(wheel.capacity, sizeof(bool));
-  wheel.count = 0;
+  wheel.idxmax = 1;  // Represents 7.
   wheel.idxmaxtrue = idx_from_wheel(49);
   set_wheel_idx_composite(wheel.idxmaxtrue);
+  set_wheel_composites(100);
+  //set_wheel_composites(1000);
 }
 
 int next_prime(int start) {
