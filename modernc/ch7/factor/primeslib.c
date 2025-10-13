@@ -60,7 +60,6 @@ static size_t idxstart_from_wheel(int lastmax, int factor) {
                         (num_offset >  7) ? 2 :
                         (num_offset >  1) ? 1 : 0);
 
-  // TODO: Check for composite flag
   printf("In idxstart_from_wheel: %d  %zu  %zu\n", next, idx_base, idx_next);
   return idx_next;
 }
@@ -71,29 +70,37 @@ static inline void set_wheel_idx_composite(size_t idx) {
   wheel.data[idx] = true;
 }
 
-// IN PROGRESS!!!!!!!!!!!!!!!!!!
+// This is the core of the wheeling operation.
 static void set_wheel_composites(size_t maxidx) {
   int targmaxnum = num_from_wheel(maxidx);
   size_t currmaxidx = wheel.idxmax;
   int currmaxnum = num_from_wheel(currmaxidx);
 
   int inumstop = sqrt(targmaxnum); 
-  
+
   for (size_t i = 1; ; ++i) {
+    // This iterates over all the prime numbers starting with
+    // 7.  We skip over composites.  The first one we skip
+    // will be 49.
+    if (wheel.data[i])
+      continue;
     assert(i < wheel.capacity);
     int n = num_from_wheel(i);
-    if (n > inumstop) {
+    if (n > inumstop)
       break;
-    }
     size_t jstart = idxstart_from_wheel(currmaxnum, n);
     if (i > jstart) jstart = i;
     printf("%d %zu\n", currmaxnum/n, jstart);
     for (size_t j = jstart; ; ++j) {
+      // This iterates over all the numbers in the wheel including
+      // composites (with all factors >= 7) because we don't want
+      // to miss marking products of three or more primes (e.g.,
+      // 7*11*11).
       int wheelnum = num_from_wheel(j);
       int prod = n * wheelnum;
-      if (prod > targmaxnum) {
+      if (prod > targmaxnum)
         break;
-      }
+
       set_wheel_idx_composite(idx_from_wheel(prod));
       printf("%zu %zu     %d %d %d\n", i, j, n, wheelnum, prod);
     }
@@ -113,7 +120,7 @@ static void init_data(void) {
   // The data are just an array of bools indicating
   // which wheel indexes correspond to composite (that is,
   // not prime) numbers.
-  wheel.capacity = 1000;
+  wheel.capacity = 1000*1000;
   wheel.data = calloc(wheel.capacity, sizeof(bool));
   wheel.idxmax = 1;  // Represents 7.
   wheel.idxmaxtrue = idx_from_wheel(49);
