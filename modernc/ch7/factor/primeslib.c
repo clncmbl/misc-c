@@ -22,7 +22,7 @@ struct wheelStruct {
 };
 static wheelStruct wheel;
 
-static int wheel_offsets[] = {1, 7, 11, 13, 17, 19, 23, 29};
+const static int wheel_offsets[] = {1, 7, 11, 13, 17, 19, 23, 29};
 
 static inline int num_from_wheel(size_t idx) {
   return 30 * (idx/8) + wheel_offsets[idx % 8];
@@ -46,12 +46,17 @@ static inline size_t idx_from_wheel(int num) {
   return idx_base + idx_offset;
 }
 
-static size_t idxstart_from_wheel(int lastmax, int factor) {
-  int next = lastmax / factor + 1;
-  size_t idx_base = 8 * (next/30);
-  int num_offset = next % 30;
 
-  size_t idx_next = idx_base +
+// A ceiling_index function that will find
+// the lowest index that includes a given number.
+// For example, passing passing 20 should return 6
+// because 6 corresponds to 23, which is the next
+// wheel number.
+static size_t ceiling_index(int num) {
+  size_t idx_base = 8 * (num/30);
+  int num_offset = num % 30;
+
+  size_t ceiling = idx_base +
                        ((num_offset > 23) ? 7 :
                         (num_offset > 19) ? 6 :
                         (num_offset > 17) ? 5 :
@@ -60,7 +65,21 @@ static size_t idxstart_from_wheel(int lastmax, int factor) {
                         (num_offset >  7) ? 2 :
                         (num_offset >  1) ? 1 : 0);
 
-  printf("In idxstart_from_wheel: %d  %zu  %zu\n", next, idx_base, idx_next);
+  printf("In ceiling_index: %d  %zu  %zu\n", num, idx_base, ceiling);
+  return ceiling;
+}
+
+static size_t idxstart_from_wheel(int lastmax, int factor) {
+  // lastmax is the most recent max value for this wheel.
+  // factor is the current factor for which we are about to
+  // mark composites.
+
+  // next is the first number that is not yet in our coverage
+  // range.
+  int next = lastmax / factor + 1;
+
+  // Now we need to find the first index that includes next.
+  size_t idx_next = ceiling_index(next);
   return idx_next;
 }
 
@@ -131,6 +150,9 @@ static void init_data(void) {
 }
 
 int next_prime(int start) {
+  // TODO: For memory allocation, implement initialization
+  //       and cleanup functions.  Or use opaque pointer
+  //       solution.
   call_once(&init_flag, init_data);
 
   printf("%d\n", num_from_wheel(10));
