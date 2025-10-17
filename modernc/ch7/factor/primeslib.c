@@ -1,3 +1,5 @@
+
+#include "primeslib.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <threads.h>
@@ -13,7 +15,6 @@ struct intDynamicArr {
 };
 static intDynamicArr primes;
 
-typedef struct wheelStruct wheelStruct;
 struct wheelStruct {
   size_t capacity;
   bool* data;
@@ -22,7 +23,7 @@ struct wheelStruct {
 };
 static wheelStruct wheel;
 
-const static int wheel_offsets[] = {1, 7, 11, 13, 17, 19, 23, 29};
+static const int wheel_offsets[] = {1, 7, 11, 13, 17, 19, 23, 29};
 
 static inline int num_from_wheel(size_t idx) {
   return 30 * (idx/8) + wheel_offsets[idx % 8];
@@ -148,6 +149,26 @@ static void init_data(void) {
   set_wheel_composites(160);
   set_wheel_composites(190);
 }
+
+wheelStruct * create_wheel(size_t capacity) {
+  wheelStruct *wheel = malloc(sizeof(wheelStruct));
+  wheel->capacity = capacity;
+  wheel->data = calloc(wheel->capacity, sizeof(bool));
+  wheel->idxmax = 1; // Represents 7.
+  // Initialize the wheel data by setting 7*7.
+  wheel->idxmaxtrue = idx_from_wheel(49);
+  set_wheel_idx_composite(wheel->idxmaxtrue);
+  return wheel;
+}
+
+void get_array_of_primes(
+            wheelStruct *wheel,
+            size_t size,
+            int primes[size]) {
+
+  primes[0] = 2;
+}
+
 
 int next_prime(int start) {
   // TODO: For memory allocation, implement initialization

@@ -75,5 +75,13 @@ int main(int argc, char* argv[argc+1]) {
   int p = next_prime(6);
   printf("%d\n", p);
 
+  wheelStruct *wheel = create_wheel(1000);
+  size_t size = 10;
+  int primevals[size] = {};
+  get_array_of_primes(wheel, size, primevals);
+  for (size_t i = 0; i < size; ++i) {
+    printf("%d  ", primevals[i]);
+  }
+  printf("\n");
 }
 
