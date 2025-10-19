@@ -6,7 +6,7 @@
 typedef struct wheelStruct wheelStruct;
 struct wheelStruct;
 
-wheelStruct * create_wheel(size_t capacity);
+wheelStruct * create_wheel();
 
 void get_array_of_primes(
             wheelStruct *wheel,

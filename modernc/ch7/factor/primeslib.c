@@ -5,7 +5,9 @@
 #include <assert.h>
 #include <stdint.h>
 #include <math.h>
+#include <string.h>
 
+/*
 typedef struct intDynamicArr intDynamicArr;
 struct intDynamicArr {
   size_t capacity;
@@ -13,12 +15,12 @@ struct intDynamicArr {
   size_t count;
 };
 static intDynamicArr primes;
+*/
 
 struct wheelStruct {
   size_t capacity;
-  bool* data;
+  bool *data;
   size_t idxmax;
-  size_t idxmaxtrue;
 };
 
 static const int wheel_offsets[] = {1, 7, 11, 13, 17, 19, 23, 29};
@@ -27,7 +29,7 @@ static inline int num_from_wheel(size_t idx) {
   return 30 * (idx/8) + wheel_offsets[idx % 8];
 }
 
-static inline size_t idx_from_wheel(int num) {
+static inline size_t idx_for_wheel_num(int num) {
   size_t idx_base = 8 * (num/30);
   int num_offset = num % 30;
   size_t idx_offset;
@@ -40,8 +42,9 @@ static inline size_t idx_from_wheel(int num) {
     case 19: idx_offset = 5; break;
     case 23: idx_offset = 6; break;
     case 29: idx_offset = 7; break;
-    default: printf("ERROR: %d does not correspond to a wheel index\n",
-                    num);
+    default: fprintf(stderr,
+                     "ERROR: %d does not correspond to a wheel index\n",
+                      num);
              exit(EXIT_FAILURE);
   }
   return idx_base + idx_offset;
@@ -96,6 +99,10 @@ static inline void set_wheel_idx_composite(
 static void set_wheel_composites(
     wheelStruct *wheel,
     size_t maxidx) {
+
+  // TODO: Check for memory allocation and expand, if necessary.
+
+
   int targmaxnum = num_from_wheel(maxidx);
   size_t currmaxidx = wheel->idxmax;
   int currmaxnum = num_from_wheel(currmaxidx);
@@ -125,27 +132,67 @@ static void set_wheel_composites(
       if (prod > targmaxnum)
         break;
 
-      set_wheel_idx_composite(wheel, idx_from_wheel(prod));
+      set_wheel_idx_composite(wheel, idx_for_wheel_num(prod));
       printf("%zu %zu     %d %d %d\n", i, j, n, wheelnum, prod);
     }
   }
   wheel->idxmax = maxidx;
 }
 
+void ensure_mem_fit(wheelStruct *wheel, size_t sizeNeeded) {
+  if (wheel->capacity <= sizeNeeded) {
+    size_t oldCapacity = wheel->capacity;
+    size_t newCapacity = 2*oldCapacity;
+    if (newCapacity <= sizeNeeded)
+      newCapacity = sizeNeeded;
 
-wheelStruct * create_wheel(size_t capacity) {
+    bool *new_mem = (bool *)realloc(
+                              wheel->data,
+                              newCapacity * sizeof(bool));
+    if (new_mem == NULL) {
+      perror("Failed to reallocate memory");
+      exit(EXIT_FAILURE);
+    }
+    size_t added_byte_size =
+      (newCapacity - oldCapacity) * sizeof(bool);
+    memset(new_mem + oldCapacity, 0, added_byte_size);
+    wheel->data = new_mem;
+    wheel->capacity = newCapacity;
+  }
+}
+
+
+void ensure_wheel_size(wheelStruct *wheel, size_t nprimes) {
+  // Ensure that our wheel has been checked for composites
+  // far enough.  Over-estimating is okay.
+  // Rosser, J. Barkley, and Lowell Schoenfeld.  "Approximate
+  // Formulas for Some Functions of Prime Numbers."
+  int maxPrimeUpperBound = nprimes*(log(nprimes) + log(log(nprimes)));
+
+  size_t maxIdxUpperBound = ceiling_index(maxPrimeUpperBound);
+  if (maxIdxUpperBound > wheel->idxmax) {
+    // The size of the array must be one greater than
+    // the largest index (to account for zero).
+    ensure_mem_fit(wheel, maxIdxUpperBound + 1);
+    set_wheel_composites(wheel, maxIdxUpperBound);
+  }
+}
+
+wheelStruct * create_wheel() {
   wheelStruct *wheel = malloc(sizeof(wheelStruct));
-  wheel->capacity = capacity;
+
+  // NOT FOR NOW: Initialize the wheel data by setting 7*7.
+  wheel->idxmax = 0; // A value of 1 represents 7.
+  //size_t idxFor49 = idx_for_wheel_num(49);
+  //wheel->capacity = idxFor49 + 1;
+  wheel->capacity = 1;
   wheel->data = calloc(wheel->capacity, sizeof(bool));
-  wheel->idxmax = 1; // Represents 7.
-  // Initialize the wheel data by setting 7*7.
-  wheel->idxmaxtrue = idx_from_wheel(49);
-  set_wheel_idx_composite(wheel, wheel->idxmaxtrue);
-  set_wheel_composites(wheel, 130);
-  set_wheel_composites(wheel, 160);
-  set_wheel_composites(wheel, 190);
+  //set_wheel_idx_composite(wheel, idxFor49);
+
+  //ensure_wheel_size(wheel, 100);
   return wheel;
 }
+
 
 void get_array_of_primes(
             wheelStruct *wheel,
@@ -153,8 +200,8 @@ void get_array_of_primes(
             int primes[size]) {
 
   switch (size) {
-    case 3: primes[2] = 5;
-    case 2: primes[1] = 3;
+    case 3: primes[2] = 5; [[fallthrough]];
+    case 2: primes[1] = 3; [[fallthrough]];
     case 1: primes[0] = 2;
             return;
     default:
@@ -163,12 +210,8 @@ void get_array_of_primes(
             primes[0] = 2;
   }
 
-  // Ensure that our wheel has been checked far enough.
-  // Over-estimating is okay.
-  int maxPrimeUpperBound = size*(log(size) + log(log(size)));
-  size_t maxIdxUpperBound = ceiling_index(maxPrimeUpperBound);
-  if (maxIdxUpperBound > wheel->idxmax)
-    set_wheel_composites(wheel, maxIdxUpperBound);
+  ensure_wheel_size(wheel, size);
+
   // i iterates over the primes array (being filled) starting
   // with the fourth.
   // j iterates over the wheel (with skips for composites)
@@ -187,9 +230,9 @@ void get_array_of_primes(
 int next_prime(int start) {
 
   printf("%d\n", num_from_wheel(10));
-  printf("%zu\n", idx_from_wheel(37));
-  //printf("%zu\n", idx_from_wheel(39));
-  //printf("%zu\n", idx_from_wheel(11111137));
+  printf("%zu\n", idx_for_wheel_num(37));
+  //printf("%zu\n", idx_for_wheel_num(39));
+  //printf("%zu\n", idx_for_wheel_num(11111137));
 
 
 /*
