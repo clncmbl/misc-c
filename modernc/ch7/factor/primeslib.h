@@ -13,6 +13,8 @@ void get_array_of_primes(
             size_t size,
             int primes[size]);
 
+int get_smallest_factor(wheelStruct *wheel, int n);
+
 int next_prime(int start);
 
 #endif // PRIMESLIB_H

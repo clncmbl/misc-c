@@ -69,7 +69,7 @@ static size_t ceiling_index(int num) {
                         (num_offset >  7) ? 2 :
                         (num_offset >  1) ? 1 : 0);
 
-  printf("In ceiling_index: %d  %zu  %zu\n", num, idx_base, ceiling);
+  //printf("In ceiling_index: %d  %zu  %zu\n", num, idx_base, ceiling);
   return ceiling;
 }
 
@@ -161,8 +161,18 @@ void ensure_mem_fit(wheelStruct *wheel, size_t sizeNeeded) {
   }
 }
 
+void ensure_wheel_size(wheelStruct *wheel, size_t maxidx) {
+  if (maxidx > wheel->idxmax) {
+    // The size of the array must be one greater than
+    // the largest index (to account for zero).
+    ensure_mem_fit(wheel, maxidx + 1);
+    set_wheel_composites(wheel, maxidx);
+  }
+}
 
-void ensure_wheel_size(wheelStruct *wheel, size_t nprimes) {
+void ensure_wheel_size_nprimes(
+                    wheelStruct *wheel,
+                    size_t nprimes) {
   // Ensure that our wheel has been checked for composites
   // far enough.  Over-estimating is okay.
   // Rosser, J. Barkley, and Lowell Schoenfeld.  "Approximate
@@ -170,12 +180,7 @@ void ensure_wheel_size(wheelStruct *wheel, size_t nprimes) {
   int maxPrimeUpperBound = nprimes*(log(nprimes) + log(log(nprimes)));
 
   size_t maxIdxUpperBound = ceiling_index(maxPrimeUpperBound);
-  if (maxIdxUpperBound > wheel->idxmax) {
-    // The size of the array must be one greater than
-    // the largest index (to account for zero).
-    ensure_mem_fit(wheel, maxIdxUpperBound + 1);
-    set_wheel_composites(wheel, maxIdxUpperBound);
-  }
+  ensure_wheel_size(wheel, maxIdxUpperBound);
 }
 
 wheelStruct * create_wheel() {
@@ -210,7 +215,7 @@ void get_array_of_primes(
             primes[0] = 2;
   }
 
-  ensure_wheel_size(wheel, size);
+  ensure_wheel_size_nprimes(wheel, size);
 
   // i iterates over the primes array (being filled) starting
   // with the fourth.
@@ -224,6 +229,33 @@ void get_array_of_primes(
 
     primes[i] = num_from_wheel(j);
   }
+}
+
+int get_smallest_factor(wheelStruct *wheel, int n) {
+  // We stop after nsqrt because if we get there, n is prime.
+  int nsqrt = sqrt(n); // truncation is intentional
+
+  if (nsqrt >= 2 && n % 2 == 0)
+    return 2;
+  if (nsqrt >= 3 && n % 3 == 0)
+    return 3;
+  if (nsqrt >= 5 && n % 5 == 0)
+    return 5;
+
+  // TODO: Use the wheel...
+  size_t maxidx = ceiling_index(nsqrt); 
+  ensure_wheel_size(wheel, maxidx);
+  for (size_t i = 1; i <= maxidx; ++i) {
+    while (wheel->data[i])
+      ++i;
+
+    int wheelnum = num_from_wheel(i);
+    if (n % wheelnum == 0)
+      return wheelnum;
+
+  }
+
+  return n;
 }
 
 
