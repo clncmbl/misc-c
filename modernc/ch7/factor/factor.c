@@ -26,8 +26,11 @@ int main(int argc, char* argv[argc+1]) {
   for (int i = 1; i < argc; ++i) {
     int n = atoi(argv[i]);
     //int n = 205193;
+    printf("%d: ", n);
+
     int f = 1;
     do {
+      // The first division is essentially a no-op.
       n = n / f; 
       f = get_smallest_factor(wheel, n);
       printf("%d ", f);
